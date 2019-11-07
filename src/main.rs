@@ -56,7 +56,7 @@ fn main() -> io::Result<()>
     let matches = match opts.parse(&args[1..]) 
     {
         Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
+        Err(_) => { print_usage(&program, opts); return Ok(()) }
     };
     if matches.opt_present("h") 
     {
@@ -74,9 +74,13 @@ fn main() -> io::Result<()>
     println!("LOCAL BIND: {}", localbind);
     println!("URL: {}", url);
     let cache = web::Data::new(Mutex::new(CacheObject {response:"".to_string(), timestamp:UNIX_EPOCH, url:url}));
-    HttpServer::new(move || {
+    match HttpServer::new(move || {
         App::new()
             .register_data(cache.clone())
             .service(web::resource("/").to(index))
-    }).bind(localbind)?.run()
+    }).bind(localbind) 
+    {
+        Ok(srv) => srv.run(),
+        Err(e) => {println!("Bind failed: {}", e); Ok(())}
+    }
 }
