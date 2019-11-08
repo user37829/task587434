@@ -4,7 +4,7 @@ import socket
 import mechanize
 import random
 
-URL = "http://127.0.0.1:3000"
+URL = "http://127.0.0.1:8000"
 TIMEOUT = 10
 N = 1000
 RUNNING = True
