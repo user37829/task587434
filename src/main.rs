@@ -1,5 +1,4 @@
 use std::sync::Mutex;
-use std::io;
 use std::time::{SystemTime, UNIX_EPOCH};
 use actix_web::{web, App, HttpServer, HttpRequest, HttpResponse};
 extern crate reqwest;
@@ -7,8 +6,8 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 
-static URL: &str = "http://127.0.0.1:8000/"; // URL веб-сервера по умолчанию
-static BIND: &str = "127.0.0.1:8888"; // хост:порт для подключений клиентов по умолчанию
+static URL: &str = "http://127.0.0.1:8080/"; // URL веб-сервера по умолчанию
+static BIND: &str = "127.0.0.1:8000"; // хост:порт для подключений клиентов по умолчанию
 static VALID_TIME: u64 = 20;
 
 struct CacheObject
@@ -43,7 +42,7 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn main() -> io::Result<()>
+fn main()
 {
     let mut localbind: String = BIND.to_string();
     let mut url: String = URL.to_string();
@@ -56,12 +55,12 @@ fn main() -> io::Result<()>
     let matches = match opts.parse(&args[1..]) 
     {
         Ok(m) => { m }
-        Err(_) => { print_usage(&program, opts); return Ok(()) }
+        Err(_) => { print_usage(&program, opts); return (); }
     };
     if matches.opt_present("h") 
     {
         print_usage(&program, opts);
-        return Ok(());
+        return ();
     }
     if matches.opt_present("U")
     {
@@ -71,16 +70,22 @@ fn main() -> io::Result<()>
     {
         localbind = matches.opt_str("B").unwrap().clone();
     }
-    println!("LOCAL BIND: {}", localbind);
+    println!("Хост: {}", localbind);
     println!("URL: {}", url);
+    match reqwest::get(&url)
+    {
+        Ok(_) => {},
+        Err(e) => {println!("Неправильный URL: {}", e); return ();}
+    }
     let cache = web::Data::new(Mutex::new(CacheObject {response:"".to_string(), timestamp:UNIX_EPOCH, url:url}));
-    match HttpServer::new(move || {
+    let srv = HttpServer::new(move || {
         App::new()
             .register_data(cache.clone())
             .service(web::resource("/").to(index))
-    }).bind(localbind) 
+    });
+    match srv.bind(localbind) 
     {
-        Ok(srv) => srv.run(),
-        Err(e) => {println!("Bind failed: {}", e); Ok(())}
+        Ok(srv) => {srv.run().unwrap();},
+        Err(e) => {println!("Ошибка хоста: {}", e);}
     }
 }
