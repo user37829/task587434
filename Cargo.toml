@@ -1,5 +1,5 @@
 [package]
-name = "proxy"
+name = "web_proxy"
 version = "0.1.0"
 authors = ["mint"]
 edition = "2018"
