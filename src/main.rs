@@ -49,9 +49,9 @@ fn main()
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
-    opts.optopt("U", "url", "URL веб-сервера (по умолчанию http://127.0.0.1:8000)", "URL");
-    opts.optopt("B", "bind", "хост:порт для подключений клиентов (по умолчанию 127.0.0.1:8888)", "BIND");
-    opts.optflag("h", "help", "справка");
+    opts.optopt("U", "url", "Forward URL (default http://127.0.0.1:8000)", "URL");
+    opts.optopt("B", "bind", "Bind address (default 127.0.0.1:8888)", "BIND");
+    opts.optflag("h", "help", "Help message");
     let matches = match opts.parse(&args[1..]) 
     {
         Ok(m) => { m }
@@ -70,12 +70,12 @@ fn main()
     {
         localbind = matches.opt_str("B").unwrap().clone();
     }
-    println!("Хост: {}", localbind);
+    println!("Bind address: {}", localbind);
     println!("URL: {}", url);
     match reqwest::get(&url)
     {
         Ok(_) => {},
-        Err(e) => {println!("Неправильный URL: {}", e); return ();}
+        Err(e) => {println!("Invalid URL: {}", e); return ();}
     }
     let cache = web::Data::new(Mutex::new(CacheObject {response:"".to_string(), timestamp:UNIX_EPOCH, url:url}));
     let srv = HttpServer::new(move || {
@@ -86,6 +86,6 @@ fn main()
     match srv.bind(localbind) 
     {
         Ok(srv) => {srv.run().unwrap();},
-        Err(e) => {println!("Ошибка хоста: {}", e);}
+        Err(e) => {println!("Bind error: {}", e);}
     }
 }
