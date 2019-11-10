@@ -20,8 +20,17 @@ struct CacheObject
 fn fetch(co:&mut CacheObject)
 {
     let url = format!("{}", co.url);
-    co.response = reqwest::get(&url).unwrap().text().unwrap(); 
-    co.timestamp = SystemTime::now();
+    match reqwest::get(&url)
+    {
+        Ok(mut x) => { 
+            co.response = x.text().unwrap(); 
+            co.timestamp = SystemTime::now(); 
+            },
+        Err(_) => {
+            println!("Warning: returning old reponse due to request error!");
+        }
+    };
+    
 }
 
 fn index(co: web::Data<Mutex<CacheObject>>, _req: HttpRequest) -> HttpResponse
@@ -72,12 +81,13 @@ fn main()
     }
     println!("Bind address: {}", localbind);
     println!("URL: {}", url);
+    let mut co = CacheObject {response:"".to_string(), timestamp:UNIX_EPOCH, url:url.clone()};
     match reqwest::get(&url)
     {
-        Ok(_) => {},
+        Ok(mut x) => {co.response = x.text().unwrap(); },
         Err(e) => {println!("Invalid URL: {}", e); return ();}
     }
-    let cache = web::Data::new(Mutex::new(CacheObject {response:"".to_string(), timestamp:UNIX_EPOCH, url:url}));
+    let cache = web::Data::new(Mutex::new(co));
     let srv = HttpServer::new(move || {
         App::new()
             .register_data(cache.clone())
